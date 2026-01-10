@@ -140,6 +140,37 @@ document.addEventListener('alpine:init', () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; a.download = 'fortress_backup.json'; a.click();
-        }
+        },
+        // Inside app.js -> Alpine.store('fortress', { ... })
+
+        async importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+        
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const content = JSON.parse(e.target.result);
+                    
+                    // 1. Update the live State
+                    this.history = content.history || [];
+                    this.todos = content.todos || [];
+                    this.masterFunds = content.masterFunds || this.masterFunds;
+                    this.allocations = content.allocations || this.allocations;
+        
+                    // 2. Persist to OPFS immediately
+                    await this.saveData();
+                    
+                    alert("Data Imported Successfully! Fortress has been restored.");
+                    
+                    // 3. Optional: Reset to history tab to see the results
+                    this.tab = 'history';
+                };
+                reader.readAsText(file);
+            } catch (err) {
+                console.error("Import failed:", err);
+                alert("Failed to import file. Ensure it is a valid Fortress backup JSON.");
+            }
+        },
     });
 });
