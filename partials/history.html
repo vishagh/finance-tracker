@@ -1,11 +1,11 @@
 <div class="space-y-10 animate-in fade-in duration-500">
     <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
         <div class="relative z-10">
-            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">6-Month Safety Fortress</h3>
+            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">6-Month Safety Fortress Progress</h3>
             <div class="flex flex-col md:flex-row justify-between items-end gap-2 mb-6">
                 <div class="text-5xl font-black text-white">₹<span x-text="$store.fortress.formatCurrency($store.fortress.totalSaved)"></span></div>
                 <div class="text-right">
-                    <span class="text-[10px] font-black text-slate-500 uppercase">Target: ₹6,00,000</span>
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Target: ₹6,00,000</span>
                     <div class="text-3xl font-black text-blue-400" x-text="(($store.fortress.totalSaved / 600000) * 100).toFixed(1) + '%'"></div>
                 </div>
             </div>
@@ -19,32 +19,32 @@
             <div class="mt-6 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 <span x-show="$store.fortress.totalSaved < 600000">Deficit: ₹<span x-text="$store.fortress.formatCurrency(600000 - $store.fortress.totalSaved)"></span></span>
                 <span class="text-green-500" x-show="$store.fortress.totalSaved >= 600000">✓ Fortress Fully Built</span>
-                <span x-text="$store.fortress.history.length + ' Logs'"></span>
+                <span x-text="$store.fortress.history.length + ' Deposits Recorded'"></span>
             </div>
         </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <template x-for="(total, fund) in $store.fortress.getFundTotals()" :key="fund">
-            <div class="bg-white p-5 rounded-2xl border-2 border-slate-50 shadow-sm text-center">
+            <div class="bg-white p-5 rounded-3xl border-2 border-slate-50 shadow-sm text-center hover:border-blue-100 transition-colors">
                 <div class="text-[8px] font-black uppercase text-slate-400 mb-1 truncate" x-text="fund"></div>
-                <div class="text-lg font-black text-slate-800">₹<span x-text="$store.fortress.formatCurrency(total)"></span></div>
+                <div class="text-lg font-black text-slate-800 tracking-tight">₹<span x-text="$store.fortress.formatCurrency(total)"></span></div>
             </div>
         </template>
     </div>
 
     <div class="space-y-4">
-        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Deposit History</h2>
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Detailed Deposit Log</h2>
         <template x-for="(entry, index) in $store.fortress.history" :key="index">
             <div class="flex items-center justify-between bg-white p-5 rounded-3xl border-2 border-slate-50 hover:border-red-50 transition-all group">
                 <div class="flex gap-4 items-center">
                     <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xs" x-text="entry.date.split('/')[0]"></div>
                     <div>
                         <div class="text-[9px] font-black text-slate-300 uppercase" x-text="entry.date"></div>
-                        <div class="font-black text-slate-800">₹<span x-text="$store.fortress.formatCurrency(entry.total)"></span></div>
+                        <div class="font-black text-slate-800 text-lg">₹<span x-text="$store.fortress.formatCurrency(entry.total)"></span></div>
                     </div>
                 </div>
-    
+
                 <div class="flex items-center gap-6">
                     <div class="text-[10px] text-slate-400 font-medium italic max-w-xs text-right hidden md:block" x-text="entry.summary"></div>
                     
@@ -55,6 +55,12 @@
                         </svg>
                     </button>
                 </div>
+            </div>
+        </template>
+        
+        <template x-if="$store.fortress.history.length === 0">
+            <div class="text-center py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed">
+                <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No history found. Go to Calculator to start.</p>
             </div>
         </template>
     </div>
