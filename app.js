@@ -1,14 +1,18 @@
 document.addEventListener('alpine:init', () => {
     Alpine.store('fortress', {
-        // State
+        // --- UI State ---
         tab: 'calc',
-        surplus: 0,
-        showManageFunds: false,
-        newFundName: '',
         storageStatus: 'Initializing...',
-        fileName: 'fortress_v8_modular.json',
+        showManageFunds: false,
+        
+        // --- Form State (Sticky Inputs) ---
+        newFundName: '',
+        newTodoTitle: '',
+        newTodoDate: '',
+        surplus: 0,
 
-        // Data Arrays
+        // --- Data ---
+        fileName: 'fortress_v8_final.json',
         masterFunds: ['ICICI Savings', 'Axis Short Duration', 'ICICI BAF', 'UTI Nifty 50 Index', 'SBI Gold Fund'],
         allocations: [
             { fundName: 'ICICI Savings', ratio: 50 },
@@ -16,11 +20,9 @@ document.addEventListener('alpine:init', () => {
             { fundName: 'ICICI BAF', ratio: 20 }
         ],
         history: [],
-        todos: [
-            { title: 'SBI FD Maturity (2.02L)', date: '2026-01-14', completed: false }
-        ],
+        todos: [],
 
-        // Initialization
+        // --- Initialization ---
         async init() {
             try {
                 const root = await navigator.storage.getDirectory();
@@ -35,42 +37,13 @@ document.addEventListener('alpine:init', () => {
                     this.allocations = data.allocations || this.allocations;
                 }
                 this.storageStatus = 'STORAGE: SECURE (OPFS)';
-
-                // Request Persistence
-                if (navigator.storage && navigator.storage.persist) {
-                    await navigator.storage.persist();
-                }
                 this.checkReminders();
             } catch (e) {
-                this.storageStatus = 'STORAGE: SESSION ONLY';
+                this.storageStatus = 'STORAGE: LOCAL CACHE';
             }
         },
 
-        // Getters (Computed Properties)
-        get totalSaved() {
-            return this.history.reduce((sum, entry) => sum + (entry.total || 0), 0);
-        },
-
-        getFundTotals() {
-            let totals = {};
-            // Initialize totals for all master funds to 0 so they show up on history tab cards
-            this.masterFunds.forEach(fund => totals[fund] = 0);
-
-            this.history.forEach(entry => {
-                if (entry.detail) {
-                    entry.detail.forEach(alloc => {
-                        let amount = (entry.total * (alloc.ratio || 0)) / 100;
-                        // Only count it if the fund still exists in masterFunds
-                        if (totals.hasOwnProperty(alloc.fundName)) {
-                            totals[alloc.fundName] += amount;
-                        }
-                    });
-                }
-            });
-            return totals;
-        },
-
-        // Actions
+        // --- Actions ---
         async saveData() {
             try {
                 const root = await navigator.storage.getDirectory();
@@ -83,7 +56,7 @@ document.addEventListener('alpine:init', () => {
                     allocations: this.allocations
                 }));
                 await writable.close();
-            } catch (e) { console.error("Save failed", e); }
+            } catch (e) { console.error("Save Error:", e); }
         },
 
         logInvestment() {
@@ -99,61 +72,57 @@ document.addEventListener('alpine:init', () => {
             this.tab = 'history';
         },
 
-        addTodo(title, date) {
-            this.todos.push({ title, date, completed: false });
-            this.todos.sort((a, b) => new Date(a.date) - new Date(b.date));
-            this.saveData();
-        },
-
-        // Utilities
-        formatCurrency(v) {
-            return (v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
-        },
-
-        // NEW: Partial Loader Logic
-        async loadPartial(tabName) {
-            try {
-                const response = await fetch(`partials/${tabName}.html`);
-                return await response.text();
-            } catch (e) {
-                return `<div class="p-4 bg-red-50 text-red-500">Error loading ${tabName} component</div>`;
+        addMasterFund() {
+            if (this.newFundName.trim()) {
+                this.masterFunds.push(this.newFundName.trim());
+                this.newFundName = '';
+                this.saveData();
             }
         },
 
-        // RESTORED: Export Logic
+        addTodo() {
+            if (this.newTodoTitle.trim() && this.newTodoDate) {
+                this.todos.push({ title: this.newTodoTitle, date: this.newTodoDate, completed: false });
+                this.todos.sort((a, b) => new Date(a.date) - new Date(b.date));
+                this.newTodoTitle = ''; this.newTodoDate = '';
+                this.saveData();
+            }
+        },
+
+        // --- Getters ---
+        get totalSaved() {
+            return this.history.reduce((sum, entry) => sum + (entry.total || 0), 0);
+        },
+
+        getFundTotals() {
+            let totals = {};
+            this.masterFunds.forEach(f => totals[f] = 0);
+            this.history.forEach(entry => {
+                if (entry.detail) {
+                    entry.detail.forEach(alloc => {
+                        let amount = (entry.total * (alloc.ratio || 0)) / 100;
+                        if (totals.hasOwnProperty(alloc.fundName)) totals[alloc.fundName] += amount;
+                    });
+                }
+            });
+            return totals;
+        },
+
+        // --- View Helpers ---
+        async loadPartial(tabName) {
+            const response = await fetch(`partials/${tabName}.html`);
+            return await response.text();
+        },
+        formatCurrency(v) { return (v || 0).toLocaleString('en-IN'); },
+        formatDate(d) { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); },
         exportData() {
-            const data = JSON.stringify({ 
-                history: this.history, 
-                todos: this.todos, 
-                masterFunds: this.masterFunds,
-                allocations: this.allocations 
-            }, null, 2);
+            const data = JSON.stringify({ history: this.history, todos: this.todos, masterFunds: this.masterFunds }, null, 2);
             const blob = new Blob([data], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `fortress_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `fortress_backup.json`;
             a.click();
-        },
-
-        // RESTORED: Notification Logic
-        requestNotificationPermission() {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") this.saveData();
-            });
-        },
-
-        checkReminders() {
-            const today = new Date().toISOString().split('T')[0];
-            this.todos.forEach(todo => {
-                if (todo.date === today && !todo.completed && Notification.permission === 'granted') {
-                    new Notification("Fortress Alert", { body: `Milestone: ${todo.title}` });
-                }
-            });
-        },
-
-        formatDate(d) {
-            return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
         }
     });
 });
