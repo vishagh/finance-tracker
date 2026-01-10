@@ -7,7 +7,7 @@ document.addEventListener('alpine:init', () => {
         newFundName: '',
         storageStatus: 'Initializing...',
         fileName: 'fortress_v8_modular.json',
-        
+
         // Data Arrays
         masterFunds: ['ICICI Savings', 'Axis Short Duration', 'ICICI BAF', 'UTI Nifty 50 Index', 'SBI Gold Fund'],
         allocations: [
@@ -35,7 +35,7 @@ document.addEventListener('alpine:init', () => {
                     this.allocations = data.allocations || this.allocations;
                 }
                 this.storageStatus = 'STORAGE: SECURE (OPFS)';
-                
+
                 // Request Persistence
                 if (navigator.storage && navigator.storage.persist) {
                     await navigator.storage.persist();
@@ -52,11 +52,17 @@ document.addEventListener('alpine:init', () => {
 
         getFundTotals() {
             let totals = {};
+            // Initialize totals for all master funds to 0 so they show up on history tab cards
+            this.masterFunds.forEach(fund => totals[fund] = 0);
+
             this.history.forEach(entry => {
                 if (entry.detail) {
                     entry.detail.forEach(alloc => {
-                        let amount = (entry.total * alloc.ratio) / 100;
-                        totals[alloc.fundName] = (totals[alloc.fundName] || 0) + amount;
+                        let amount = (entry.total * (alloc.ratio || 0)) / 100;
+                        // Only count it if the fund still exists in masterFunds
+                        if (totals.hasOwnProperty(alloc.fundName)) {
+                            totals[alloc.fundName] += amount;
+                        }
                     });
                 }
             });
@@ -99,8 +105,8 @@ document.addEventListener('alpine:init', () => {
         },
 
         // Utilities
-        formatCurrency(v) { 
-            return (v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); 
+        formatCurrency(v) {
+            return (v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
         },
 
         // NEW: Partial Loader Logic
@@ -113,8 +119,8 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        formatDate(d) { 
-            return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); 
+        formatDate(d) {
+            return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
         }
     });
 });
