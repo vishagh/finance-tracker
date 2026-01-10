@@ -1,29 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>Fortress Command v8.1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Fortress Command</title>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="app.js"></script>
 </head>
+<body class="bg-slate-50 p-2 md:p-10 font-sans text-slate-900" x-data x-cloak x-init="$store.fortress.init()">
 
-<body class="bg-slate-50 p-2 md:p-10" x-data x-cloak x-init="$store.fortress.init()">
-
-    <div class="max-w-5xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border">
-        <nav class="flex border-b bg-slate-100">
-            <template x-for="t in ['calc', 'history', 'todo']">
-                <button @click="$store.fortress.tab = t"
-                    :class="$store.fortress.tab === t ? 'bg-white font-black text-blue-600' : 'opacity-40'"
-                    class="flex-1 py-5 text-[10px] uppercase tracking-widest" x-text="t"></button>
-            </template>
-        </nav>
-
-        <main class="p-6 md:p-10">
-            <div x-html="$store.fortress.loadPartial($store.fortress.tab)"></div>
-        </main>
+<div class="max-w-5xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+    
+    <div class="bg-slate-900 px-6 py-3 flex justify-between items-center text-[10px] font-black tracking-widest text-slate-400 uppercase">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full" :class="$store.fortress.storageStatus.includes('SECURE') ? 'bg-green-500' : 'bg-orange-500'"></span>
+            <span x-text="$store.fortress.storageStatus"></span>
+        </div>
+        <div class="flex gap-4">
+            <button @click="$store.fortress.exportData()" class="hover:text-blue-400 transition">Export Backup</button>
+            <button @click="$store.fortress.requestNotificationPermission()" 
+                    x-show="Notification.permission !== 'granted'" 
+                    class="text-orange-400 hover:text-orange-300 underline">Enable Alerts</button>
+        </div>
     </div>
-</body>
 
+    <nav class="flex border-b bg-slate-100">
+        <template x-for="t in ['calc', 'history', 'todo']">
+            <button @click="$store.fortress.tab = t" 
+                :class="$store.fortress.tab === t ? 'bg-white border-t-4 border-t-blue-600 font-black text-blue-600' : 'opacity-40'"
+                class="flex-1 py-5 text-[10px] uppercase tracking-[0.2em] transition-all"
+                x-text="t === 'calc' ? 'Calculator' : t === 'history' ? 'History & Progress' : 'Timeline'">
+            </button>
+        </template>
+    </nav>
+
+    <main class="p-6 md:p-10">
+        <div x-html="$store.fortress.loadPartial($store.fortress.tab)"></div>
+    </main>
+</div>
+
+</body>
 </html>

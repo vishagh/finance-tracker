@@ -40,6 +40,7 @@ document.addEventListener('alpine:init', () => {
                 if (navigator.storage && navigator.storage.persist) {
                     await navigator.storage.persist();
                 }
+                this.checkReminders();
             } catch (e) {
                 this.storageStatus = 'STORAGE: SESSION ONLY';
             }
@@ -117,6 +118,38 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 return `<div class="p-4 bg-red-50 text-red-500">Error loading ${tabName} component</div>`;
             }
+        },
+
+        // RESTORED: Export Logic
+        exportData() {
+            const data = JSON.stringify({ 
+                history: this.history, 
+                todos: this.todos, 
+                masterFunds: this.masterFunds,
+                allocations: this.allocations 
+            }, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fortress_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        },
+
+        // RESTORED: Notification Logic
+        requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") this.saveData();
+            });
+        },
+
+        checkReminders() {
+            const today = new Date().toISOString().split('T')[0];
+            this.todos.forEach(todo => {
+                if (todo.date === today && !todo.completed && Notification.permission === 'granted') {
+                    new Notification("Fortress Alert", { body: `Milestone: ${todo.title}` });
+                }
+            });
         },
 
         formatDate(d) {
