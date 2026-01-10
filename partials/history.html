@@ -1,25 +1,25 @@
 <div class="space-y-10 animate-in fade-in duration-500">
     <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
         <div class="relative z-10">
-            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 text-center md:text-left">6-Month Safety Fortress</h3>
-            <div class="flex flex-col md:flex-row justify-between items-end gap-2 mb-6 text-center md:text-left">
+            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">6-Month Safety Fortress</h3>
+            <div class="flex flex-col md:flex-row justify-between items-end gap-2 mb-6">
                 <div class="text-5xl font-black text-white">₹<span x-text="$store.fortress.formatCurrency($store.fortress.totalSaved)"></span></div>
                 <div class="text-right">
-                    <span class="text-[10px] font-black text-slate-500 uppercase">Target: ₹2,30,000</span>
-                    <div class="text-3xl font-black text-blue-400" x-text="(($store.fortress.totalSaved / 230000) * 100).toFixed(1) + '%'"></div>
+                    <span class="text-[10px] font-black text-slate-500 uppercase">Target: ₹6,00,000</span>
+                    <div class="text-3xl font-black text-blue-400" x-text="(($store.fortress.totalSaved / 600000) * 100).toFixed(1) + '%'"></div>
                 </div>
             </div>
             
             <div class="w-full bg-slate-800 rounded-full h-5 p-1 border border-slate-700 shadow-inner">
                 <div class="bg-gradient-to-r from-blue-600 to-cyan-400 h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(37,99,235,0.4)]"
-                     :style="'width: ' + Math.min(100, (($store.fortress.totalSaved / 230000) * 100)) + '%'">
+                     :style="'width: ' + Math.min(100, (($store.fortress.totalSaved / 600000) * 100)) + '%'">
                 </div>
             </div>
             
             <div class="mt-6 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                <span x-show="$store.fortress.totalSaved < 230000">Deficit: ₹<span x-text="$store.fortress.formatCurrency(230000 - $store.fortress.totalSaved)"></span></span>
-                <span class="text-green-500" x-show="$store.fortress.totalSaved >= 230000">✓ Fortress Fully Built</span>
-                <span x-text="$store.fortress.history.length + ' Deposits'"></span>
+                <span x-show="$store.fortress.totalSaved < 600000">Deficit: ₹<span x-text="$store.fortress.formatCurrency(600000 - $store.fortress.totalSaved)"></span></span>
+                <span class="text-green-500" x-show="$store.fortress.totalSaved >= 600000">✓ Fortress Fully Built</span>
+                <span x-text="$store.fortress.history.length + ' Logs'"></span>
             </div>
         </div>
     </div>
