@@ -1,18 +1,16 @@
 document.addEventListener('alpine:init', () => {
     Alpine.store('fortress', {
-        // --- UI State ---
+        // --- State ---
         tab: 'calc',
+        surplus: 0,
         storageStatus: 'Initializing...',
         showManageFunds: false,
-        
-        // --- Form State (Sticky Inputs) ---
         newFundName: '',
         newTodoTitle: '',
         newTodoDate: '',
-        surplus: 0,
-
-        // --- Data ---
         fileName: 'fortress_v8_final.json',
+        
+        // --- Data Arrays ---
         masterFunds: ['ICICI Savings', 'Axis Short Duration', 'ICICI BAF', 'UTI Nifty 50 Index', 'SBI Gold Fund'],
         allocations: [
             { fundName: 'ICICI Savings', ratio: 50 },
@@ -25,17 +23,10 @@ document.addEventListener('alpine:init', () => {
         // --- Initialization ---
         async init() {
             try {
-                // Ensure we are in a secure context before even trying
-                if (!window.isSecureContext) {
-                    throw new Error("Not a secure context");
-                }
-        
-                // Wait a tiny bit for the browser to stabilize the Origin
-                await new Promise(resolve => setTimeout(resolve, 100));
-        
+                if (!window.isSecureContext) throw new Error("Insecure Context");
+                
                 const root = await navigator.storage.getDirectory();
                 const fileHandle = await root.getFileHandle(this.fileName, { create: true });
-                
                 const file = await fileHandle.getFile();
                 const text = await file.text();
                 
@@ -46,35 +37,27 @@ document.addEventListener('alpine:init', () => {
                     this.masterFunds = data.masterFunds || this.masterFunds;
                     this.allocations = data.allocations || this.allocations;
                 }
-                
                 this.storageStatus = 'STORAGE: SECURE (OPFS)';
                 
-                // Request persistent storage so the browser doesn't clear it
+                // Persistence Request
                 if (navigator.storage && navigator.storage.persist) {
-                    const isPersisted = await navigator.storage.persist();
-                    console.log("Storage persisted:", isPersisted);
+                    await navigator.storage.persist();
                 }
-        
             } catch (e) {
-                console.error("OPFS Initialization Failed:", e);
-                this.storageStatus = 'STORAGE: LOCAL CACHE (INSECURE)';
+                console.error("OPFS Error:", e);
+                this.storageStatus = 'STORAGE: LOCAL CACHE';
             }
         },
 
-        // --- Actions ---
-        async saveData() {
+        // --- Core Methods ---
+        async loadPartial(tabName) {
             try {
-                const root = await navigator.storage.getDirectory();
-                const fileHandle = await root.getFileHandle(this.fileName, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(JSON.stringify({
-                    history: this.history,
-                    todos: this.todos,
-                    masterFunds: this.masterFunds,
-                    allocations: this.allocations
-                }));
-                await writable.close();
-            } catch (e) { console.error("Save Error:", e); }
+                const response = await fetch(`partials/${tabName}.html`);
+                if (!response.ok) throw new Error('Fetch failed');
+                return await response.text();
+            } catch (e) {
+                return `<div class="p-4 bg-red-50 text-red-500 rounded-xl">Error loading ${tabName} partial.</div>`;
+            }
         },
 
         logInvestment() {
@@ -90,19 +73,13 @@ document.addEventListener('alpine:init', () => {
             this.tab = 'history';
         },
 
-        // Inside app.js store
         removeHistoryEntry(index) {
-            if (confirm("Are you sure you want to delete this deposit record? This will update your total progress.")) {
-                // Remove the entry from the array
+            if (confirm("Permanently delete this record? This will affect your total progress.")) {
                 this.history.splice(index, 1);
-                
-                // Persist the change to OPFS immediately
                 this.saveData();
-                
-                // Note: Alpine's reactivity will automatically 
-                // trigger getFundTotals() and totalSaved to recalculate
             }
-        }
+        },
+
         addMasterFund() {
             if (this.newFundName.trim()) {
                 this.masterFunds.push(this.newFundName.trim());
@@ -120,7 +97,22 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // --- Getters ---
+        async saveData() {
+            try {
+                const root = await navigator.storage.getDirectory();
+                const fileHandle = await root.getFileHandle(this.fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify({
+                    history: this.history,
+                    todos: this.todos,
+                    masterFunds: this.masterFunds,
+                    allocations: this.allocations
+                }));
+                await writable.close();
+            } catch (e) { console.error("Save failed", e); }
+        },
+
+        // --- Getters (Computed) ---
         get totalSaved() {
             return this.history.reduce((sum, entry) => sum + (entry.total || 0), 0);
         },
@@ -139,11 +131,7 @@ document.addEventListener('alpine:init', () => {
             return totals;
         },
 
-        // --- View Helpers ---
-        async loadPartial(tabName) {
-            const response = await fetch(`partials/${tabName}.html`);
-            return await response.text();
-        },
+        // --- Helpers ---
         formatCurrency(v) { return (v || 0).toLocaleString('en-IN'); },
         formatDate(d) { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); },
         exportData() {
@@ -151,9 +139,7 @@ document.addEventListener('alpine:init', () => {
             const blob = new Blob([data], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `fortress_backup.json`;
-            a.click();
+            a.href = url; a.download = 'fortress_backup.json'; a.click();
         }
     });
 });
