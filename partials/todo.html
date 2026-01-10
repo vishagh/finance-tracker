@@ -1,0 +1,67 @@
+<div class="space-y-8 animate-in fade-in duration-500" x-data="{ newTitle: '', newDate: '' }">
+    <div class="flex justify-between items-end">
+        <div>
+            <h2 class="text-2xl font-black text-slate-800 tracking-tight">Financial Timeline</h2>
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Milestones & Relocation Tasks</p>
+        </div>
+        <div class="text-right">
+            <span class="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase" 
+                  x-text="$store.fortress.todos.filter(t => !t.completed).length + ' Pending'"></span>
+        </div>
+    </div>
+    
+    <div class="bg-slate-900 p-6 md:p-8 rounded-[2.5rem] shadow-2xl space-y-4 border border-slate-800">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Event Name</label>
+                <input type="text" x-model="newTitle" placeholder="e.g., Pay School Fees / SBI FD" 
+                    class="w-full p-3 rounded-xl bg-slate-800 text-white text-sm outline-none border border-transparent focus:border-blue-500 transition-all placeholder:text-slate-600">
+            </div>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Target Date</label>
+                <input type="date" x-model="newDate" 
+                    class="w-full p-3 rounded-xl bg-slate-800 text-white text-sm outline-none border border-transparent focus:border-blue-500 transition-all">
+            </div>
+        </div>
+        <button @click="$store.fortress.addTodo(newTitle, newDate); newTitle=''; newDate='';" 
+            class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-blue-900/20 active:scale-[0.98]">
+            Add to Timeline
+        </button>
+    </div>
+
+    <div class="space-y-4 relative">
+        <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-slate-100 hidden md:block"></div>
+
+        <template x-for="(item, idx) in $store.fortress.todos" :key="idx">
+            <div class="flex items-start gap-5 bg-white p-5 rounded-3xl border border-slate-100 group hover:border-blue-200 hover:shadow-md transition-all relative z-10">
+                <div class="mt-1">
+                    <input type="checkbox" x-model="item.completed" @change="$store.fortress.saveData()" 
+                        class="w-6 h-6 rounded-full border-2 border-slate-200 text-blue-600 focus:ring-blue-500 cursor-pointer transition-all">
+                </div>
+
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest" 
+                              x-text="$store.fortress.formatDate(item.date)"></span>
+                        <template x-if="new Date(item.date) - new Date() < 604800000 && !item.completed">
+                            <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                        </template>
+                    </div>
+                    <div class="text-lg font-bold text-slate-700 mt-1" 
+                         :class="item.completed ? 'line-through opacity-30 italic' : ''" 
+                         x-text="item.title"></div>
+                </div>
+
+                <button @click="if(confirm('Delete milestone?')) { $store.fortress.todos.splice(idx, 1); $store.fortress.saveData(); }" 
+                    class="text-slate-200 hover:text-red-500 text-2xl group-hover:opacity-100 opacity-0 transition-opacity px-2">
+                    &times;
+                </button>
+            </div>
+        </template>
+
+        <div x-show="$store.fortress.todos.length === 0" class="py-20 text-center">
+            <div class="text-slate-200 text-5xl mb-4">📅</div>
+            <p class="text-slate-400 font-medium italic">No milestones set. Start planning for Dec 2026.</p>
+        </div>
+    </div>
+</div>
