@@ -25,10 +25,20 @@ document.addEventListener('alpine:init', () => {
         // --- Initialization ---
         async init() {
             try {
+                // Ensure we are in a secure context before even trying
+                if (!window.isSecureContext) {
+                    throw new Error("Not a secure context");
+                }
+        
+                // Wait a tiny bit for the browser to stabilize the Origin
+                await new Promise(resolve => setTimeout(resolve, 100));
+        
                 const root = await navigator.storage.getDirectory();
                 const fileHandle = await root.getFileHandle(this.fileName, { create: true });
+                
                 const file = await fileHandle.getFile();
                 const text = await file.text();
+                
                 if (text) {
                     const data = JSON.parse(text);
                     this.history = data.history || [];
@@ -36,10 +46,18 @@ document.addEventListener('alpine:init', () => {
                     this.masterFunds = data.masterFunds || this.masterFunds;
                     this.allocations = data.allocations || this.allocations;
                 }
+                
                 this.storageStatus = 'STORAGE: SECURE (OPFS)';
-                this.checkReminders();
+                
+                // Request persistent storage so the browser doesn't clear it
+                if (navigator.storage && navigator.storage.persist) {
+                    const isPersisted = await navigator.storage.persist();
+                    console.log("Storage persisted:", isPersisted);
+                }
+        
             } catch (e) {
-                this.storageStatus = 'STORAGE: LOCAL CACHE';
+                console.error("OPFS Initialization Failed:", e);
+                this.storageStatus = 'STORAGE: LOCAL CACHE (INSECURE)';
             }
         },
 
