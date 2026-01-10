@@ -1,7 +1,37 @@
 <div class="space-y-10 animate-in fade-in">
-    <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white">
-        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500">Total Saved</h3>
-        <div class="text-5xl font-black">₹<span
-                x-text="$store.fortress.formatCurrency($store.fortress.totalSaved)"></span></div>
+    <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
+        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">6L Fortress Progress</h3>
+        <div class="text-5xl font-black mb-6">₹<span x-text="$store.fortress.formatCurrency($store.fortress.totalSaved)"></span></div>
+        <div class="w-full bg-slate-800 rounded-full h-4 p-1 border border-slate-700">
+            <div class="bg-gradient-to-r from-blue-600 to-cyan-400 h-full rounded-full transition-all duration-1000"
+                 :style="'width: ' + Math.min(100, (($store.fortress.totalSaved / 600000) * 100)) + '%'">
+            </div>
+        </div>
+        <div class="mt-4 flex justify-between text-[10px] font-black text-slate-500 uppercase">
+            <span x-text="Math.min(100, (($store.fortress.totalSaved / 600000) * 100)).toFixed(1) + '% Complete'"></span>
+            <span x-show="$store.fortress.totalSaved < 600000">Remaining: ₹<span x-text="$store.fortress.formatCurrency(600000 - $store.fortress.totalSaved)"></span></span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <template x-for="(total, fund) in $store.fortress.getFundTotals()" :key="fund">
+            <div class="bg-white p-4 rounded-2xl border text-center shadow-sm">
+                <div class="text-[8px] font-black uppercase text-slate-400 mb-1 truncate" x-text="fund"></div>
+                <div class="text-sm font-black text-slate-800">₹<span x-text="$store.fortress.formatCurrency(total)"></span></div>
+            </div>
+        </template>
+    </div>
+
+    <div class="space-y-3">
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Transaction Log</h2>
+        <template x-for="entry in $store.fortress.history">
+            <div class="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100">
+                <div>
+                    <div class="text-[9px] font-black text-slate-300 uppercase" x-text="entry.date"></div>
+                    <div class="font-black text-slate-800 text-lg">₹<span x-text="$store.fortress.formatCurrency(entry.total)"></span></div>
+                </div>
+                <div class="text-[10px] text-slate-400 italic text-right max-w-xs" x-text="entry.summary"></div>
+            </div>
+        </template>
     </div>
 </div>
