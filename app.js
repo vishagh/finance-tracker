@@ -90,6 +90,19 @@ document.addEventListener('alpine:init', () => {
             this.tab = 'history';
         },
 
+        // Inside app.js store
+        removeHistoryEntry(index) {
+            if (confirm("Are you sure you want to delete this deposit record? This will update your total progress.")) {
+                // Remove the entry from the array
+                this.history.splice(index, 1);
+                
+                // Persist the change to OPFS immediately
+                this.saveData();
+                
+                // Note: Alpine's reactivity will automatically 
+                // trigger getFundTotals() and totalSaved to recalculate
+            }
+        }
         addMasterFund() {
             if (this.newFundName.trim()) {
                 this.masterFunds.push(this.newFundName.trim());
