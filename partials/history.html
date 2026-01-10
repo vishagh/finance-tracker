@@ -35,16 +35,26 @@
 
     <div class="space-y-4">
         <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Deposit History</h2>
-        <template x-for="entry in $store.fortress.history">
-            <div class="flex items-center justify-between bg-white p-5 rounded-3xl border-2 border-slate-50 hover:border-blue-100 transition-all">
+        <template x-for="(entry, index) in $store.fortress.history" :key="index">
+            <div class="flex items-center justify-between bg-white p-5 rounded-3xl border-2 border-slate-50 hover:border-red-50 transition-all group">
                 <div class="flex gap-4 items-center">
                     <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xs" x-text="entry.date.split('/')[0]"></div>
                     <div>
                         <div class="text-[9px] font-black text-slate-300 uppercase" x-text="entry.date"></div>
-                        <div class="font-bold text-slate-800">₹<span x-text="$store.fortress.formatCurrency(entry.total)"></span></div>
+                        <div class="font-black text-slate-800">₹<span x-text="$store.fortress.formatCurrency(entry.total)"></span></div>
                     </div>
                 </div>
-                <div class="text-[10px] text-slate-400 font-medium italic max-w-xs text-right hidden md:block" x-text="entry.summary"></div>
+    
+                <div class="flex items-center gap-6">
+                    <div class="text-[10px] text-slate-400 font-medium italic max-w-xs text-right hidden md:block" x-text="entry.summary"></div>
+                    
+                    <button @click="$store.fortress.removeHistoryEntry(index)" 
+                            class="text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </template>
     </div>
