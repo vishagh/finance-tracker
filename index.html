@@ -17,11 +17,16 @@
             <span class="w-2 h-2 rounded-full" :class="$store.fortress.storageStatus.includes('SECURE') ? 'bg-green-500' : 'bg-orange-500'"></span>
             <span x-text="$store.fortress.storageStatus"></span>
         </div>
-        <div class="flex gap-4">
-            <button @click="$store.fortress.exportData()" class="hover:text-blue-400 transition">Export Backup</button>
-            <button @click="$store.fortress.requestNotificationPermission()" 
-                    x-show="Notification.permission !== 'granted'" 
-                    class="text-orange-400 hover:text-orange-300 underline">Enable Alerts</button>
+        <div class="flex gap-4 items-center">
+            <button @click="$store.fortress.exportData()" class="hover:text-blue-400 transition">Export</button>
+            
+            <button @click="$refs.fileInput.click()" class="hover:text-green-400 transition border-l border-slate-700 pl-4">Import</button>
+            
+            <input type="file" 
+                   x-ref="fileInput" 
+                   @change="$store.fortress.importData($event)" 
+                   accept=".json" 
+                   class="hidden">
         </div>
     </div>
 
