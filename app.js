@@ -1,65 +1,113 @@
 document.addEventListener('alpine:init', () => {
     Alpine.store('fortress', {
-        // --- State ---
+        // --- UI & Form State ---
         tab: 'calc',
         surplus: 0,
         storageStatus: 'Initializing...',
         showManageFunds: false,
         newFundName: '',
+        newFundCategory: 'equity', 
         newTodoTitle: '',
         newTodoDate: '',
-        fileName: 'fortress_v8_final.json',
+
+        // --- Configurable Settings ---
+        settings: {
+            emergencyTarget: 600000,
+            wealthTarget: 5000000
+        },
+
+        // --- Data Persistence ---
+        fileName: 'fortress_v9_logic.json',
         
-        // --- Data Arrays ---
-        masterFunds: ['ICICI Savings', 'Axis Short Duration', 'ICICI BAF', 'UTI Nifty 50 Index', 'SBI Gold Fund'],
+        // Registry: Objects now hold Categories
+        masterFunds: [
+            { name: 'ICICI Savings', category: 'debt' },
+            { name: 'Axis Short Duration', category: 'debt' },
+            { name: 'ICICI BAF', category: 'equity' },
+            { name: 'UTI Nifty 50 Index', category: 'equity' },
+            { name: 'SBI Gold Fund', category: 'commodity' }
+        ],
+        
         allocations: [
             { fundName: 'ICICI Savings', ratio: 50 },
             { fundName: 'Axis Short Duration', ratio: 30 },
             { fundName: 'ICICI BAF', ratio: 20 }
         ],
+        
         history: [],
         todos: [],
 
-        // --- Initialization ---
+        // --- Initialization & Storage ---
         async init() {
             try {
                 if (!window.isSecureContext) throw new Error("Insecure Context");
-                
                 const root = await navigator.storage.getDirectory();
                 const fileHandle = await root.getFileHandle(this.fileName, { create: true });
                 const file = await fileHandle.getFile();
                 const text = await file.text();
-                
                 if (text) {
                     const data = JSON.parse(text);
                     this.history = data.history || [];
                     this.todos = data.todos || [];
                     this.masterFunds = data.masterFunds || this.masterFunds;
                     this.allocations = data.allocations || this.allocations;
+                    this.settings = data.settings || this.settings;
                 }
                 this.storageStatus = 'STORAGE: SECURE (OPFS)';
-                
-                // Persistence Request
-                if (navigator.storage && navigator.storage.persist) {
-                    await navigator.storage.persist();
-                }
+                if (navigator.storage && navigator.storage.persist) await navigator.storage.persist();
             } catch (e) {
-                console.error("OPFS Error:", e);
+                console.error("Storage Error:", e);
                 this.storageStatus = 'STORAGE: LOCAL CACHE';
             }
         },
 
-        // --- Core Methods ---
-        async loadPartial(tabName) {
+        async saveData() {
             try {
-                const response = await fetch(`partials/${tabName}.html`);
-                if (!response.ok) throw new Error('Fetch failed');
-                return await response.text();
-            } catch (e) {
-                return `<div class="p-4 bg-red-50 text-red-500 rounded-xl">Error loading ${tabName} partial.</div>`;
-            }
+                const root = await navigator.storage.getDirectory();
+                const fileHandle = await root.getFileHandle(this.fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify({
+                    history: this.history, todos: this.todos,
+                    masterFunds: this.masterFunds, allocations: this.allocations,
+                    settings: this.settings
+                }));
+                await writable.close();
+            } catch (e) { console.error("Save failed", e); }
         },
 
+        // --- Computed Wealth Logic ---
+        get totalWealth() {
+            return this.history.reduce((sum, entry) => sum + (entry.total || 0), 0);
+        },
+
+        get emergencyWealth() {
+            return this.history.reduce((totalDebt, entry) => {
+                if (!entry.detail) return totalDebt;
+                const entryDebt = entry.detail.reduce((subSum, alloc) => {
+                    const fund = this.masterFunds.find(f => f.name === alloc.fundName);
+                    return (fund && fund.category === 'debt') 
+                        ? subSum + (entry.total * (alloc.ratio || 0)) / 100 
+                        : subSum;
+                }, 0);
+                return totalDebt + entryDebt;
+            }, 0);
+        },
+
+        getFundTotals() {
+            let totals = {};
+            this.masterFunds.forEach(f => totals[f.name] = 0);
+            this.history.forEach(entry => {
+                if (entry.detail) {
+                    entry.detail.forEach(alloc => {
+                        let amount = (entry.total * (alloc.ratio || 0)) / 100;
+                        if (totals.hasOwnProperty(alloc.fundName)) totals[alloc.fundName] += amount;
+                    });
+                }
+            });
+            return totals;
+        },
+
+        // --- Action Methods ---
         logInvestment() {
             if (this.surplus <= 0) return;
             const summary = this.allocations.filter(a => a.ratio > 0).map(a => `${a.fundName} (${a.ratio}%)`).join(' | ');
@@ -74,7 +122,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         removeHistoryEntry(index) {
-            if (confirm("Permanently delete this record? This will affect your total progress.")) {
+            if (confirm("Permanently delete this record?")) {
                 this.history.splice(index, 1);
                 this.saveData();
             }
@@ -82,7 +130,7 @@ document.addEventListener('alpine:init', () => {
 
         addMasterFund() {
             if (this.newFundName.trim()) {
-                this.masterFunds.push(this.newFundName.trim());
+                this.masterFunds.push({ name: this.newFundName.trim(), category: this.newFundCategory });
                 this.newFundName = '';
                 this.saveData();
             }
@@ -97,80 +145,41 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        async saveData() {
-            try {
-                const root = await navigator.storage.getDirectory();
-                const fileHandle = await root.getFileHandle(this.fileName, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(JSON.stringify({
-                    history: this.history,
-                    todos: this.todos,
-                    masterFunds: this.masterFunds,
-                    allocations: this.allocations
-                }));
-                await writable.close();
-            } catch (e) { console.error("Save failed", e); }
-        },
-
-        // --- Getters (Computed) ---
-        get totalSaved() {
-            return this.history.reduce((sum, entry) => sum + (entry.total || 0), 0);
-        },
-
-        getFundTotals() {
-            let totals = {};
-            this.masterFunds.forEach(f => totals[f] = 0);
-            this.history.forEach(entry => {
-                if (entry.detail) {
-                    entry.detail.forEach(alloc => {
-                        let amount = (entry.total * (alloc.ratio || 0)) / 100;
-                        if (totals.hasOwnProperty(alloc.fundName)) totals[alloc.fundName] += amount;
-                    });
-                }
-            });
-            return totals;
-        },
-
-        // --- Helpers ---
-        formatCurrency(v) { return (v || 0).toLocaleString('en-IN'); },
-        formatDate(d) { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); },
+        // --- Import/Export ---
         exportData() {
-            const data = JSON.stringify({ history: this.history, todos: this.todos, masterFunds: this.masterFunds }, null, 2);
+            const data = JSON.stringify({ history: this.history, todos: this.todos, masterFunds: this.masterFunds, settings: this.settings }, null, 2);
             const blob = new Blob([data], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = 'fortress_backup.json'; a.click();
+            a.href = url; a.download = `fortress_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
         },
-        // Inside app.js -> Alpine.store('fortress', { ... })
 
         async importData(event) {
             const file = event.target.files[0];
             if (!file) return;
-        
-            try {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
                     const content = JSON.parse(e.target.result);
-                    
-                    // 1. Update the live State
                     this.history = content.history || [];
                     this.todos = content.todos || [];
                     this.masterFunds = content.masterFunds || this.masterFunds;
-                    this.allocations = content.allocations || this.allocations;
-        
-                    // 2. Persist to OPFS immediately
+                    this.settings = content.settings || this.settings;
                     await this.saveData();
-                    
-                    alert("Data Imported Successfully! Fortress has been restored.");
-                    
-                    // 3. Optional: Reset to history tab to see the results
+                    alert("Import Successful!");
                     this.tab = 'history';
-                };
-                reader.readAsText(file);
-            } catch (err) {
-                console.error("Import failed:", err);
-                alert("Failed to import file. Ensure it is a valid Fortress backup JSON.");
-            }
+                } catch (err) { alert("Invalid Backup File"); }
+            };
+            reader.readAsText(file);
         },
+
+        // --- View Helpers ---
+        formatCurrency(v) { return (v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); },
+        formatDate(d) { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); },
+        async loadPartial(tabName) {
+            const response = await fetch(`partials/${tabName}.html`);
+            return await response.text();
+        }
     });
 });
