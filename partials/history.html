@@ -1,94 +1,82 @@
 <div class="space-y-10 animate-in fade-in duration-500">
-    
     <div class="bg-white rounded-[2.5rem] p-8 border-2 border-slate-100 shadow-sm relative overflow-hidden">
         <div class="relative z-10">
             <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-1">Liquidity Fortress (Debt/Liquid Only)</h3>
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-1">Liquidity Fortress (Debt Only)</h3>
                     <div class="text-4xl font-black text-slate-800">₹<span x-text="$store.fortress.formatCurrency($store.fortress.emergencyWealth)"></span></div>
                 </div>
                 <div class="text-right">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target: ₹<span x-text="$store.fortress.formatCurrency($store.fortress.settings.emergencyTarget)"></span></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target: ₹6,00,000</span>
                     <div class="text-2xl font-black text-blue-600" x-text="(($store.fortress.emergencyWealth / $store.fortress.settings.emergencyTarget) * 100).toFixed(1) + '%'"></div>
                 </div>
             </div>
-            
             <div class="w-full bg-slate-100 rounded-full h-4 p-1 shadow-inner">
                 <div class="bg-blue-600 h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(37,99,235,0.3)]"
                      :style="'width: ' + Math.min(100, (($store.fortress.emergencyWealth / $store.fortress.settings.emergencyTarget) * 100)) + '%'">
                 </div>
-            </div>
-            
-            <div class="mt-4 flex justify-between items-center text-[9px] font-bold uppercase tracking-widest">
-                <span class="text-slate-400" x-show="$store.fortress.emergencyWealth < $store.fortress.settings.emergencyTarget">
-                    Deficit to 6L: ₹<span x-text="$store.fortress.formatCurrency($store.fortress.settings.emergencyTarget - $store.fortress.emergencyWealth)"></span>
-                </span>
-                <span class="text-green-500" x-show="$store.fortress.emergencyWealth >= $store.fortress.settings.emergencyTarget">✓ 6-Month Safety Net Secured</span>
             </div>
         </div>
     </div>
 
     <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
         <div class="absolute -right-20 -top-20 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full"></div>
-        
         <div class="relative z-10">
             <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Total Asset Value (Wealth Command)</h3>
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Total Asset Value</h3>
                     <div class="text-4xl font-black text-white">₹<span x-text="$store.fortress.formatCurrency($store.fortress.totalWealth)"></span></div>
                 </div>
                 <div class="text-right">
-                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Target: ₹<span x-text="$store.fortress.formatCurrency($store.fortress.settings.wealthTarget)"></span></span>
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Target: ₹50,00,000</span>
                     <div class="text-2xl font-black text-cyan-400" x-text="(($store.fortress.totalWealth / $store.fortress.settings.wealthTarget) * 100).toFixed(1) + '%'"></div>
                 </div>
             </div>
-            
             <div class="w-full bg-slate-800 rounded-full h-4 p-1 border border-slate-700 shadow-inner">
                 <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
                      :style="'width: ' + Math.min(100, (($store.fortress.totalWealth / $store.fortress.settings.wealthTarget) * 100)) + '%'">
                 </div>
-            </div>
-            
-            <div class="mt-4 flex justify-between items-center text-[9px] font-bold uppercase tracking-widest text-slate-500">
-                <span>Horizon: 2033 (7 Years)</span>
-                <span x-text="$store.fortress.history.length + ' Total Deposits'"></span>
             </div>
         </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <template x-for="(total, fundName) in $store.fortress.getFundTotals()" :key="fundName">
-            <div class="bg-white p-5 rounded-3xl border-2 border-slate-50 shadow-sm text-center hover:border-blue-100 transition-colors group">
+            <div class="bg-white p-5 rounded-3xl border-2 border-slate-50 shadow-sm text-center">
                 <div class="text-[8px] font-black uppercase mb-1 truncate" 
                      :class="{
                         'text-blue-500': $store.fortress.masterFunds.find(f => f.name === fundName)?.category === 'debt',
                         'text-emerald-500': $store.fortress.masterFunds.find(f => f.name === fundName)?.category === 'equity',
                         'text-amber-500': $store.fortress.masterFunds.find(f => f.name === fundName)?.category === 'commodity'
-                     }"
-                     x-text="fundName"></div>
-                <div class="text-lg font-black text-slate-800 tracking-tight">₹<span x-text="$store.fortress.formatCurrency(total)"></span></div>
+                     }" x-text="fundName"></div>
+                <div class="text-lg font-black text-slate-800">₹<span x-text="$store.fortress.formatCurrency(total)"></span></div>
             </div>
         </template>
     </div>
 
-    <div class="space-y-4">
-        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Detailed Deposit Log</h2>
-        <template x-for="(entry, index) in $store.fortress.history" :key="index">
-            <div class="flex items-center justify-between bg-white p-5 rounded-3xl border-2 border-slate-50 hover:border-blue-50 transition-all group">
-                <div class="flex gap-4 items-center">
-                    <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors font-black text-xs" x-text="entry.date.split('/')[0]"></div>
-                    <div>
-                        <div class="text-[9px] font-black text-slate-300 uppercase" x-text="entry.date"></div>
-                        <div class="font-black text-slate-800 text-lg">₹<span x-text="$store.fortress.formatCurrency(entry.total)"></span></div>
-                    </div>
+    <div class="space-y-8">
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Transaction Ledger</h2>
+        
+        <template x-for="(entries, date) in $store.fortress.groupedHistory" :key="date">
+            <div class="space-y-3">
+                <div class="flex items-center gap-4 px-2">
+                    <div class="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 uppercase tracking-widest" x-text="date"></div>
+                    <div class="h-px bg-slate-100 flex-1"></div>
                 </div>
 
-                <div class="flex items-center gap-6">
-                    <div class="text-[10px] text-slate-400 font-medium italic max-w-xs text-right hidden md:block" x-text="entry.summary"></div>
-                    <button @click="$store.fortress.removeHistoryEntry(index)" 
-                            class="text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
+                <div class="space-y-2">
+                    <template x-for="(entry, idx) in entries" :key="idx">
+                        <div class="flex items-center justify-between bg-white p-5 rounded-[2rem] border-2 border-slate-50 hover:border-blue-100 transition-all group">
+                            <div class="flex gap-4 items-center">
+                                <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all font-black text-[10px]" x-text="idx + 1"></div>
+                                <div class="font-black text-slate-800 text-lg">₹<span x-text="$store.fortress.formatCurrency(entry.total)"></span></div>
+                            </div>
+                            <div class="flex items-center gap-6">
+                                <div class="text-[9px] text-slate-400 font-bold uppercase tracking-tight max-w-xs text-right hidden md:block" x-text="entry.cleanSummary"></div>
+                                <button @click="$store.fortress.removeHistoryEntry(entry.originalIndex)" class="text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-2 text-2xl">&times;</button>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
         </template>

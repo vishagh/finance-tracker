@@ -95,6 +95,31 @@ document.addEventListener('alpine:init', () => {
             }, 0);
         },
 
+        get groupedHistory() {
+            // 1. Create a copy and sort by the stored isoDate (or date if isoDate missing)
+            const sorted = [...this.history].sort((a, b) => {
+                const dateA = new Date(a.isoDate || a.date.split('/').reverse().join('-'));
+                const dateB = new Date(b.isoDate || b.date.split('/').reverse().join('-'));
+                return dateB - dateA; // Descending: Newest first
+            });
+
+            // 2. Group items by date
+            const groups = {};
+            sorted.forEach(entry => {
+                if (!groups[entry.date]) groups[entry.date] = [];
+                
+                // 3. Logic to remove "(100%)" or percentages from the summary string
+                // We clean it up here so the raw data in OPFS remains untouched.
+                const cleanedSummary = entry.summary.replace(/\s\(\d+%\)/g, '');
+                
+                groups[entry.date].push({
+                    ...entry,
+                    cleanSummary: cleanedSummary
+                });
+            });
+            return groups;
+        },
+
         getFundTotals() {
             let totals = {};
             this.masterFunds.forEach(f => totals[f.name] = 0);
