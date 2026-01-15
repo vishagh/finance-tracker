@@ -1,17 +1,19 @@
 document.addEventListener('alpine:init', () => {
     Alpine.store('fortress', {
-        // --- UI & Form State ---
+        // --- State ---
         tab: 'calc',
         surplus: 0,
-        logDate: new Date().toISOString().split('T')[0], // Default to today
+        logDate: new Date().toISOString().split('T')[0],
         storageStatus: 'Initializing...',
         showManageFunds: false,
+        visibleLimit: 5,
+        showInsights: false,
         newFundName: '',
-        newFundCategory: 'equity', 
+        newFundCategory: 'equity',
         newTodoTitle: '',
         newTodoDate: '',
 
-        // --- Configurable Settings (Target JSON) ---
+        // --- Configurable Settings ---
         settings: {
             emergencyTarget: 600000,
             wealthTarget: 5000000
@@ -19,7 +21,6 @@ document.addEventListener('alpine:init', () => {
 
         // --- Data Persistence ---
         fileName: 'fortress_v9_logic.json',
-        
         masterFunds: [
             { name: 'ICICI Savings', category: 'debt' },
             { name: 'Axis Short Duration', category: 'debt' },
@@ -27,20 +28,15 @@ document.addEventListener('alpine:init', () => {
             { name: 'UTI Nifty 50 Index', category: 'equity' },
             { name: 'SBI Gold Fund', category: 'commodity' }
         ],
-        
         allocations: [
             { fundName: 'ICICI Savings', ratio: 50 },
             { fundName: 'Axis Short Duration', ratio: 30 },
             { fundName: 'ICICI BAF', ratio: 20 }
         ],
-        
         history: [],
         todos: [],
-        // --- State ---
-        visibleLimit: 5, // Number of DATE GROUPS to show initially
-        showInsights: false,
 
-        // --- Initialization & Storage ---
+        // --- Initialization ---
         async init() {
             try {
                 if (!window.isSecureContext) throw new Error("Insecure Context");
@@ -64,23 +60,7 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        async saveData() {
-            try {
-                const root = await navigator.storage.getDirectory();
-                const fileHandle = await root.getFileHandle(this.fileName, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(JSON.stringify({
-                    history: this.history, 
-                    todos: this.todos,
-                    masterFunds: this.masterFunds, 
-                    allocations: this.allocations,
-                    settings: this.settings
-                }));
-                await writable.close();
-            } catch (e) { console.error("Save failed", e); }
-        },
-
-        // --- Computed Wealth Logic ---
+        // --- Non-Destructive View Getters ---
         get totalWealth() {
             return this.history.reduce((sum, entry) => sum + (entry.total || 0), 0);
         },
@@ -99,20 +79,15 @@ document.addEventListener('alpine:init', () => {
         },
 
         get groupedHistory() {
-            // 1. Newest transactions first, using isoDate for reliability
             const sorted = [...this.history].sort((a, b) => {
                 const dateA = new Date(a.isoDate || a.date.split('/').reverse().join('-'));
                 const dateB = new Date(b.isoDate || b.date.split('/').reverse().join('-'));
                 return dateB - dateA;
             });
-
             const groups = {};
             sorted.forEach(entry => {
                 if (!groups[entry.date]) groups[entry.date] = [];
-                
-                // Regex removes " (X%)" from the string for the view only
                 const cleanedSummary = entry.summary ? entry.summary.replace(/\s\(\d+%\)/g, '') : '';
-                
                 groups[entry.date].push({
                     ...entry,
                     cleanSummary: cleanedSummary,
@@ -120,24 +95,6 @@ document.addEventListener('alpine:init', () => {
                 });
             });
             return groups;
-        },
-
-        getFundTotals() {
-            let totals = {};
-            this.masterFunds.forEach(f => totals[f.name] = 0);
-            this.history.forEach(entry => {
-                if (entry.detail) {
-                    entry.detail.forEach(alloc => {
-                        let amount = (entry.total * (alloc.ratio || 0)) / 100;
-                        if (totals.hasOwnProperty(alloc.fundName)) totals[alloc.fundName] += amount;
-                    });
-                }
-            });
-            return totals;
-        },
-
-        get hasMore() {
-            return Object.keys(this.groupedHistory).length > this.visibleLimit;
         },
 
         get paginatedGroups() {
@@ -149,62 +106,62 @@ document.addEventListener('alpine:init', () => {
             return paginated;
         },
 
+        get hasMore() {
+            return Object.keys(this.groupedHistory).length > this.visibleLimit;
+        },
+
         get strategicInsights() {
             const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            
-            // Calculate Monthly Average
-            const thisYearEntries = this.history.filter(e => {
-                const d = new Date(e.isoDate);
-                return d.getFullYear() === currentYear;
-            });
-            
+            const thisYearEntries = this.history.filter(e => new Date(e.isoDate || e.date).getFullYear() === now.getFullYear());
             const yearlyTotal = thisYearEntries.reduce((sum, e) => sum + e.total, 0);
-            const avg = thisYearEntries.length > 0 ? yearlyTotal / (currentMonth + 1) : 0;
+            const avg = thisYearEntries.length > 0 ? yearlyTotal / (now.getMonth() + 1) : 0;
             
-            // Strategy Suggestion logic
-            let suggestion = "Maintain current SIP momentum.";
-            if (this.emergencyWealth < this.settings.emergencyTarget) {
-                suggestion = "Priority: Redirect surplus to Debt until 6L Fortress is hit.";
-            } else if (this.totalWealth > 1000000) {
-                suggestion = "Fortress Secure. Consider increasing Equity exposure to 70%.";
-            }
+            let suggestion = "Maintain SIP momentum.";
+            if (this.emergencyWealth < this.settings.emergencyTarget) suggestion = "Priority: 6L Fortress.";
+            else if (this.totalWealth > 1000000) suggestion = "Increase Equity to 70%.";
 
             return {
                 avgMonthly: avg,
-                yearlyTotal: yearlyTotal,
-                suggestion: suggestion,
-                burnRateCovered: (this.emergencyWealth / 100000).toFixed(1) // Assuming 1L/month burn
+                burnRateCovered: (this.emergencyWealth / 100000).toFixed(1),
+                suggestion: suggestion
             };
         },
 
-        // --- Action Methods ---
+        // --- Core Actions ---
+        async saveData() {
+            try {
+                const root = await navigator.storage.getDirectory();
+                const fileHandle = await root.getFileHandle(this.fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify({
+                    history: this.history, todos: this.todos,
+                    masterFunds: this.masterFunds, allocations: this.allocations,
+                    settings: this.settings
+                }));
+                await writable.close();
+            } catch (e) { console.error("Save failed", e); }
+        },
+
         logInvestment() {
             if (this.surplus <= 0) return;
             const summary = this.allocations.filter(a => a.ratio > 0).map(a => `${a.fundName} (${a.ratio}%)`).join(' | ');
-            
-            // Format the manual date for display
-            const displayDate = new Date(this.logDate).toLocaleDateString('en-IN');
-
             this.history.unshift({
-                date: displayDate,
+                date: new Date(this.logDate).toLocaleDateString('en-IN'),
                 isoDate: this.logDate,
                 total: this.surplus,
                 summary: summary,
                 detail: JSON.parse(JSON.stringify(this.allocations))
             });
-
-            // Auto-sort history by date so manual entries fall into place
             this.history.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
-
             this.saveData();
             this.surplus = 0;
             this.tab = 'history';
         },
 
+        loadMore() { this.visibleLimit += 5; },
+
         removeHistoryEntry(index) {
-            if (confirm("Permanently delete this record?")) {
+            if (confirm("Delete this record?")) {
                 this.history.splice(index, 1);
                 this.saveData();
             }
@@ -227,19 +184,14 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // --- Import/Export ---
         exportData() {
             const data = JSON.stringify({ history: this.history, todos: this.todos, masterFunds: this.masterFunds, settings: this.settings }, null, 2);
             const blob = new Blob([data], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = `fortress_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.href = url; a.download = `fortress_backup.json`;
             a.click();
         },
-
-        loadMore() {
-            this.visibleLimit += 5;
-        }
 
         async importData(event) {
             const file = event.target.files[0];
@@ -260,7 +212,20 @@ document.addEventListener('alpine:init', () => {
             reader.readAsText(file);
         },
 
-        // --- View Helpers ---
+        getFundTotals() {
+            let totals = {};
+            this.masterFunds.forEach(f => totals[f.name] = 0);
+            this.history.forEach(entry => {
+                if (entry.detail) {
+                    entry.detail.forEach(alloc => {
+                        let amount = (entry.total * (alloc.ratio || 0)) / 100;
+                        if (totals.hasOwnProperty(alloc.fundName)) totals[alloc.fundName] += amount;
+                    });
+                }
+            });
+            return totals;
+        },
+
         formatCurrency(v) { return (v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); },
         formatDate(d) { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); },
         async loadPartial(tabName) {
