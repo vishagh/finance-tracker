@@ -3,6 +3,7 @@ document.addEventListener('alpine:init', () => {
         // --- UI & Form State ---
         tab: 'calc',
         surplus: 0,
+        logDate: new Date().toISOString().split('T')[0], // Default to today
         storageStatus: 'Initializing...',
         showManageFunds: false,
         newFundName: '',
@@ -10,7 +11,7 @@ document.addEventListener('alpine:init', () => {
         newTodoTitle: '',
         newTodoDate: '',
 
-        // --- Configurable Settings ---
+        // --- Configurable Settings (Target JSON) ---
         settings: {
             emergencyTarget: 600000,
             wealthTarget: 5000000
@@ -19,7 +20,6 @@ document.addEventListener('alpine:init', () => {
         // --- Data Persistence ---
         fileName: 'fortress_v9_logic.json',
         
-        // Registry: Objects now hold Categories
         masterFunds: [
             { name: 'ICICI Savings', category: 'debt' },
             { name: 'Axis Short Duration', category: 'debt' },
@@ -67,8 +67,10 @@ document.addEventListener('alpine:init', () => {
                 const fileHandle = await root.getFileHandle(this.fileName, { create: true });
                 const writable = await fileHandle.createWritable();
                 await writable.write(JSON.stringify({
-                    history: this.history, todos: this.todos,
-                    masterFunds: this.masterFunds, allocations: this.allocations,
+                    history: this.history, 
+                    todos: this.todos,
+                    masterFunds: this.masterFunds, 
+                    allocations: this.allocations,
                     settings: this.settings
                 }));
                 await writable.close();
@@ -111,13 +113,23 @@ document.addEventListener('alpine:init', () => {
         logInvestment() {
             if (this.surplus <= 0) return;
             const summary = this.allocations.filter(a => a.ratio > 0).map(a => `${a.fundName} (${a.ratio}%)`).join(' | ');
+            
+            // Format the manual date for display
+            const displayDate = new Date(this.logDate).toLocaleDateString('en-IN');
+
             this.history.unshift({
-                date: new Date().toLocaleDateString('en-IN'),
+                date: displayDate,
+                isoDate: this.logDate,
                 total: this.surplus,
                 summary: summary,
                 detail: JSON.parse(JSON.stringify(this.allocations))
             });
+
+            // Auto-sort history by date so manual entries fall into place
+            this.history.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
+
             this.saveData();
+            this.surplus = 0;
             this.tab = 'history';
         },
 

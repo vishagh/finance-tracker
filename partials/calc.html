@@ -1,71 +1,81 @@
 <div class="space-y-8 animate-in fade-in duration-500">
-    <div class="flex justify-between items-center">
-        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Monthly Splitter</h2>
+    <div class="flex justify-between items-center px-2">
+        <div>
+            <h2 class="text-2xl font-black text-slate-800 tracking-tight">Monthly Splitter</h2>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Allocation Engine</p>
+        </div>
         <button @click="$store.fortress.showManageFunds = !$store.fortress.showManageFunds" 
-                class="text-[10px] font-black border-2 px-4 py-1.5 rounded-xl uppercase tracking-widest hover:bg-slate-50 transition-colors">
-            <span x-text="$store.fortress.showManageFunds ? 'Close Registry' : 'Manage Registry'"></span>
+                class="text-[10px] font-black border-2 px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-slate-50 transition-all">
+            <span x-text="$store.fortress.showManageFunds ? 'Close Registry' : 'Manage Funds'"></span>
         </button>
     </div>
 
-    <div x-show="$store.fortress.showManageFunds" x-transition class="bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 space-y-6">
+    <div x-show="$store.fortress.showManageFunds" x-transition class="bg-slate-50 p-6 rounded-[2.5rem] border-2 border-dashed border-slate-200 space-y-6">
         <div class="flex flex-wrap gap-2">
             <template x-for="(fund, index) in $store.fortress.masterFunds" :key="index">
-                <span class="bg-white border-2 border-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-3 shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full" 
+                <span class="bg-white border-2 border-slate-100 px-3 py-2 rounded-2xl text-[10px] font-black flex items-center gap-3 shadow-sm group">
+                    <span class="w-2 h-2 rounded-full" 
                           :class="{'bg-blue-500': fund.category === 'debt', 'bg-emerald-500': fund.category === 'equity', 'bg-amber-500': fund.category === 'commodity'}"></span>
-                    <span x-text="fund.name" class="text-slate-700 uppercase tracking-wider"></span>
-                    <button @click="$store.fortress.masterFunds.splice(index, 1); $store.fortress.saveData()" class="text-slate-300 hover:text-red-500 transition-colors text-lg">&times;</button>
+                    <span x-text="fund.name" class="text-slate-700 uppercase"></span>
+                    <button @click="$store.fortress.masterFunds.splice(index, 1); $store.fortress.saveData()" class="text-slate-300 hover:text-red-500 transition-colors text-xl">&times;</button>
                 </span>
             </template>
         </div>
         
-        <div class="flex flex-col md:flex-row gap-3 bg-white p-4 rounded-2xl border shadow-sm">
-            <input x-model="$store.fortress.newFundName" @keyup.enter="$store.fortress.addMasterFund()" type="text" placeholder="Fund Name (e.g. SBI Gold)" class="flex-1 p-2 text-sm outline-none font-bold">
-            <select x-model="$store.fortress.newFundCategory" class="p-2 text-[10px] font-black uppercase tracking-widest bg-slate-50 rounded-xl outline-none border-none">
+        <div class="flex flex-col lg:flex-row gap-3 bg-white p-4 rounded-3xl border shadow-sm">
+            <input x-model="$store.fortress.newFundName" type="text" placeholder="Fund Name (e.g. PPFAS)" class="flex-1 p-2 text-sm outline-none font-bold">
+            <select x-model="$store.fortress.newFundCategory" class="p-2 text-[10px] font-black uppercase tracking-widest bg-slate-50 rounded-xl outline-none">
                 <option value="equity">Equity (Growth)</option>
                 <option value="debt">Debt (Fortress)</option>
                 <option value="commodity">Commodity (Hedge)</option>
             </select>
-            <button @click="$store.fortress.addMasterFund()" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">Add Fund</button>
+            <button @click="$store.fortress.addMasterFund()" class="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">Add Fund</button>
         </div>
     </div>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="space-y-3">
-            <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Available Surplus (₹)</label>
-            <input type="number" x-model.number="$store.fortress.surplus" placeholder="0.00" class="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-[2rem] text-3xl font-black outline-none transition-all shadow-inner">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-white p-2 rounded-[2.5rem]">
+        <div class="space-y-2 p-4">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Transaction Date</label>
+            <input type="date" x-model="$store.fortress.logDate" 
+                   class="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl font-bold text-slate-700 outline-none transition-all">
         </div>
-        <div class="flex items-end pb-1">
+
+        <div class="space-y-2 p-4">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Surplus Amount (₹)</label>
+            <input type="number" x-model.number="$store.fortress.surplus" placeholder="0.00" 
+                   class="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl text-2xl font-black outline-none transition-all">
+        </div>
+
+        <div class="flex items-end p-4">
             <button @click="$store.fortress.logInvestment()" 
-                    class="w-full bg-blue-600 text-white p-5 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95">
-                Log Entry to History
+                    class="w-full bg-blue-600 text-white h-[64px] rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95">
+                Log Investment
             </button>
         </div>
     </div>
     
-    <div class="space-y-4 pt-8 border-t-2 border-slate-50">
-        <div class="flex justify-between items-center px-2">
-            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Distribution Plan</h3>
-            <button @click="$store.fortress.allocations.push({ fundName: '', ratio: 0 })" class="text-blue-600 text-[10px] font-black hover:bg-blue-50 px-3 py-1 rounded-lg transition-colors">+ ADD ROW</button>
+    <div class="space-y-4 pt-4">
+        <div class="flex justify-between items-center px-4">
+            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Calculated Split</h3>
+            <button @click="$store.fortress.allocations.push({ fundName: '', ratio: 0 })" class="text-blue-600 text-[10px] font-black hover:underline">+ NEW ROW</button>
         </div>
         
         <template x-for="(alloc, index) in $store.fortress.allocations" :key="index">
             <div class="flex flex-col md:flex-row gap-4 items-center bg-white p-5 rounded-[2.5rem] border-2 border-slate-50 group hover:border-blue-100 transition-all shadow-sm">
-                <select x-model="alloc.fundName" @change="$store.fortress.saveData()" class="w-full md:flex-1 p-2 font-bold text-slate-700 outline-none bg-transparent cursor-pointer">
-                    <option value="">Choose Fund...</option>
+                <select x-model="alloc.fundName" @change="$store.fortress.saveData()" class="w-full md:flex-1 p-2 font-bold text-slate-700 outline-none bg-transparent appearance-none">
+                    <option value="">Select Fund...</option>
                     <template x-for="f in $store.fortress.masterFunds">
                         <option :value="f.name" x-text="f.name"></option>
                     </template>
                 </select>
                 
-                <div class="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                <div class="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border">
                     <input type="number" x-model.number="alloc.ratio" @input="$store.fortress.saveData()" class="w-12 bg-transparent text-center font-black text-blue-600 outline-none" placeholder="0">
-                    <span class="text-slate-300 font-black text-xs">%</span>
+                    <span class="text-slate-300 font-black text-[10px]">%</span>
                 </div>
                 
-                <div class="w-full md:w-40 text-right pr-4">
-                    <span class="text-[10px] font-black text-slate-300 uppercase block mb-0.5">Allocation</span>
-                    <span class="font-mono font-black text-slate-800 text-xl">₹<span x-text="$store.fortress.formatCurrency(($store.fortress.surplus * (alloc.ratio || 0)) / 100)"></span></span>
+                <div class="w-full md:w-44 text-right pr-4">
+                    <span class="font-mono font-black text-slate-800 text-2xl tracking-tighter">₹<span x-text="$store.fortress.formatCurrency(($store.fortress.surplus * (alloc.ratio || 0)) / 100)"></span></span>
                 </div>
                 
                 <button @click="$store.fortress.allocations.splice(index, 1); $store.fortress.saveData()" class="text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-2 text-2xl">&times;</button>
