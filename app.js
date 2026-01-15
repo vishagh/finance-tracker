@@ -36,6 +36,9 @@ document.addEventListener('alpine:init', () => {
         
         history: [],
         todos: [],
+        // --- State ---
+        visibleLimit: 5, // Number of DATE GROUPS to show initially
+        showInsights: false,
 
         // --- Initialization & Storage ---
         async init() {
@@ -96,25 +99,24 @@ document.addEventListener('alpine:init', () => {
         },
 
         get groupedHistory() {
-            // 1. Create a copy and sort by the stored isoDate (or date if isoDate missing)
+            // 1. Newest transactions first, using isoDate for reliability
             const sorted = [...this.history].sort((a, b) => {
                 const dateA = new Date(a.isoDate || a.date.split('/').reverse().join('-'));
                 const dateB = new Date(b.isoDate || b.date.split('/').reverse().join('-'));
-                return dateB - dateA; // Descending: Newest first
+                return dateB - dateA;
             });
 
-            // 2. Group items by date
             const groups = {};
             sorted.forEach(entry => {
                 if (!groups[entry.date]) groups[entry.date] = [];
                 
-                // 3. Logic to remove "(100%)" or percentages from the summary string
-                // We clean it up here so the raw data in OPFS remains untouched.
-                const cleanedSummary = entry.summary.replace(/\s\(\d+%\)/g, '');
+                // Regex removes " (X%)" from the string for the view only
+                const cleanedSummary = entry.summary ? entry.summary.replace(/\s\(\d+%\)/g, '') : '';
                 
                 groups[entry.date].push({
                     ...entry,
-                    cleanSummary: cleanedSummary
+                    cleanSummary: cleanedSummary,
+                    originalIndex: this.history.indexOf(entry)
                 });
             });
             return groups;
@@ -132,6 +134,49 @@ document.addEventListener('alpine:init', () => {
                 }
             });
             return totals;
+        },
+
+        get hasMore() {
+            return Object.keys(this.groupedHistory).length > this.visibleLimit;
+        },
+
+        get paginatedGroups() {
+            const keys = Object.keys(this.groupedHistory);
+            const paginated = {};
+            keys.slice(0, this.visibleLimit).forEach(key => {
+                paginated[key] = this.groupedHistory[key];
+            });
+            return paginated;
+        },
+
+        get strategicInsights() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            // Calculate Monthly Average
+            const thisYearEntries = this.history.filter(e => {
+                const d = new Date(e.isoDate);
+                return d.getFullYear() === currentYear;
+            });
+            
+            const yearlyTotal = thisYearEntries.reduce((sum, e) => sum + e.total, 0);
+            const avg = thisYearEntries.length > 0 ? yearlyTotal / (currentMonth + 1) : 0;
+            
+            // Strategy Suggestion logic
+            let suggestion = "Maintain current SIP momentum.";
+            if (this.emergencyWealth < this.settings.emergencyTarget) {
+                suggestion = "Priority: Redirect surplus to Debt until 6L Fortress is hit.";
+            } else if (this.totalWealth > 1000000) {
+                suggestion = "Fortress Secure. Consider increasing Equity exposure to 70%.";
+            }
+
+            return {
+                avgMonthly: avg,
+                yearlyTotal: yearlyTotal,
+                suggestion: suggestion,
+                burnRateCovered: (this.emergencyWealth / 100000).toFixed(1) // Assuming 1L/month burn
+            };
         },
 
         // --- Action Methods ---
@@ -191,6 +236,10 @@ document.addEventListener('alpine:init', () => {
             a.href = url; a.download = `fortress_backup_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
         },
+
+        loadMore() {
+            this.visibleLimit += 5;
+        }
 
         async importData(event) {
             const file = event.target.files[0];
